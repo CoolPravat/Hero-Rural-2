@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>गाँव के शान — रफ़्तार साथी | Compact Simulation</title>
+<style>
+/* DESIGN: "Arghya dusk": Chhath evening plum sky with a saffron sun glow.
+   Signature move = the 8-beat TAAL strip (धा गे ना ति ना का धी ना). It really plays a synthesized
+   dholak + chimta rhythm and lights up beat by beat. The dashed road on the left tracks the 4 campaign steps.
+   100% standalone: no external fonts, scripts, images or audio files. */
+:root{
+  --night:#1A0E2E;--night2:#2B1748;--gold:#FFC247;--saffron:#FF7A1A;--vermil:#E8452C;--cream:#FFF3DC;--teal:#0F5C63;--ink:#16120E;
+  --sans:"Mukta","Noto Sans Devanagari","Nirmala UI","Kohinoor Devanagari","Mangal",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --serif:"Rozha One","Noto Serif Devanagari","Kohinoor Devanagari","Nirmala UI","Mangal",Georgia,serif;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--cream);font-family:var(--sans);min-height:100vh;
+  background:radial-gradient(900px 520px at 90% -10%,rgba(255,122,26,.4),transparent 62%),
+             radial-gradient(700px 480px at -10% 40%,rgba(56,178,196,.16),transparent 60%),var(--night)}
+button{font-family:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:32px 20px 56px;display:grid;gap:44px;grid-template-columns:1fr}
+@media(min-width:920px){.wrap{grid-template-columns:1.05fr .95fr;align-items:start;padding-top:56px}}
+
+/* ---------- left: poster ---------- */
+.eyebrow{font-weight:800;letter-spacing:.07em;font-size:.78rem;text-transform:uppercase;color:var(--gold)}
+h1{font-family:var(--serif);font-weight:700;font-size:clamp(2rem,5vw,3.4rem);line-height:1.4;margin:.35em 0 .15em}
+h1 .hl{background:linear-gradient(90deg,var(--gold),var(--saffron));-webkit-background-clip:text;background-clip:text;color:transparent}
+.translit{margin:0;font-weight:600;opacity:.9}
+.en{margin:.2em 0 0;font-style:italic;opacity:.75}
+
+/* compact taal strip */
+.taal{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:20px;padding:10px 12px;border:1.5px solid rgba(255,194,71,.4);border-radius:16px;background:rgba(255,255,255,.05)}
+.sun{width:52px;height:52px;border-radius:50%;border:0;cursor:pointer;flex:none;color:var(--ink);font-size:1.1rem;font-weight:800;
+  background:radial-gradient(circle at 35% 30%,#FFE9A8,var(--gold) 45%,var(--saffron));box-shadow:0 0 0 4px rgba(255,194,71,.18),0 0 24px rgba(255,122,26,.5);transition:transform .1s}
+.sun.kick{transform:scale(1.1)}
+.beats{display:flex;gap:5px;flex:1;min-width:230px;justify-content:space-between}
+.beat{flex:1;min-width:0;text-align:center;padding:6px 0;border-radius:9px;font-weight:800;font-size:.82rem;border:1.5px solid rgba(255,194,71,.4);background:var(--night2);transition:transform .1s,background .1s,color .1s}
+.beat.bass{border-color:var(--saffron);border-width:2.5px}
+.beat.on{background:var(--gold);color:var(--ink);transform:translateY(-3px)}
+.speed{display:flex;align-items:center;gap:6px;font-size:.8rem;width:100%}
+.speed input{flex:1;accent-color:var(--saffron)}
+.lyric{margin:0;width:100%;min-height:1.4em;font-weight:800;color:var(--gold);font-size:.95rem}
+
+/* road */
+.road{list-style:none;margin:24px 0 0;padding:0;position:relative}
+.road::before{content:"";position:absolute;left:22px;top:10px;bottom:10px;border-left:4px dashed var(--cream);opacity:.25}
+.road li{display:grid;grid-template-columns:48px 1fr;gap:14px;padding:8px 0;opacity:.6;transition:opacity .3s}
+.road li.reached,.road li.active{opacity:1}
+.badge{position:relative;z-index:1;width:46px;height:46px;border-radius:50%;background:var(--night);border:3px solid var(--cream);display:grid;place-items:center;font-weight:800;transition:transform .3s,background .3s}
+.reached .badge{background:var(--cream);color:var(--night)}
+.active .badge{background:var(--gold);color:var(--ink);border-color:var(--gold);transform:scale(1.14)}
+.road h3{margin:0;font-size:1.06rem;line-height:1.25}
+.road h3 small{font-weight:600;opacity:.7;font-size:.76rem;margin-left:6px}
+.road p{margin:2px 0 0;font-size:.92rem;opacity:.85}
+.tips{margin-top:18px;padding:12px 14px;border:2px dashed rgba(255,243,220,.5);border-radius:12px;font-size:.88rem}
+.tips code{background:var(--gold);color:var(--ink);padding:1px 6px;border-radius:5px;font-weight:700}
+
+/* ---------- right: phone ---------- */
+.phone{width:100%;max-width:400px;margin:0 auto;background:#0B0616;border-radius:38px;padding:10px;
+  box-shadow:0 30px 60px -22px rgba(0,0,0,.7),12px 12px 0 var(--saffron)}
+.screen{border-radius:28px;overflow:hidden;background:#F3E6CB;color:var(--ink);display:flex;flex-direction:column;height:min(720px,86vh)}
+.bar{background:var(--teal);color:#fff;display:flex;align-items:center;gap:10px;padding:12px 14px}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--gold);display:grid;place-items:center;font-size:1.2rem}
+.bar b{display:block;line-height:1.1}.bar small{opacity:.9}
+.reset{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,.6);color:#fff;border-radius:999px;padding:4px 11px;cursor:pointer}
+.log{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px;
+  background-image:radial-gradient(rgba(15,92,99,.12) 1.2px,transparent 1.2px);background-size:18px 18px}
+.msg{max-width:92%;animation:pop .22s ease-out}
+.bubble{padding:8px 11px 6px;border-radius:12px;white-space:pre-wrap;line-height:1.45;font-size:.95rem;box-shadow:0 1px 0 rgba(0,0,0,.12)}
+.bot .bubble{background:#fff;border-top-left-radius:2px}
+.user{align-self:flex-end}.user .bubble{background:#FFD86B;border-top-right-radius:2px}
+.time{display:block;text-align:right;font-size:.68rem;opacity:.6;margin-top:2px}
+.chips{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.chip{background:#fff;border:1.5px solid var(--teal);color:var(--teal);font:600 .93rem var(--sans);padding:9px 10px;border-radius:10px;cursor:pointer;transition:background .15s,color .15s}
+.chip:hover:not(:disabled){background:var(--teal);color:#fff}
+.chip:disabled{opacity:.45;cursor:default}
+.hint{align-self:center;text-align:center;background:rgba(255,255,255,.85);border-radius:12px;padding:12px;font-size:.88rem;max-width:90%}
+.hint .qr{width:84px;height:84px;margin:0 auto 6px;border:1px solid #ddd;border-radius:8px;overflow:hidden}
+.hint .qr svg{display:block;width:100%;height:100%}
+.typing .bubble{display:flex;gap:4px;padding:12px}
+.typing i{width:7px;height:7px;border-radius:50%;background:#888;animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+/* voice note */
+.voice{display:flex;align-items:center;gap:9px;min-width:220px}
+.vplay{width:36px;height:36px;border-radius:50%;border:0;background:var(--teal);color:#fff;cursor:pointer}
+.vwave{display:flex;align-items:center;gap:3px;height:30px;flex:1}
+.vwave i{width:3px;border-radius:2px;background:#9bb7ba}
+.vwave i.hi{background:var(--vermil)}
+.vtext{margin-top:6px;font-size:.82rem;opacity:.8;font-style:italic}
+/* reel card inside chat */
+.reelcard{display:flex;gap:10px;align-items:flex-start}
+.frame{position:relative;flex:none;width:104px;border-radius:12px;overflow:hidden;background:#000}
+.frame svg{display:block;width:100%;height:auto;aspect-ratio:9/16}
+.tag{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.65);color:var(--cream);font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:999px}
+.rtxt{font-size:.88rem;line-height:1.4}
+.rtxt b{color:#9A5A00}
+.bike{animation:bob .9s ease-in-out infinite alternate}
+.wheel{animation:spin .7s linear infinite;transform-box:fill-box;transform-origin:center}
+.composer{display:flex;gap:8px;padding:10px;background:#EFE2C6}
+.composer input{flex:1;border:0;border-radius:999px;padding:11px 15px;font:inherit;background:#fff;color:var(--ink)}
+.send{border:0;border-radius:50%;width:44px;height:44px;background:var(--teal);color:#fff;font-size:1.1rem;cursor:pointer}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}}
+@keyframes b{50%{transform:translateY(-4px);opacity:.5}}
+@keyframes bob{to{transform:translateY(-1.6px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section>
+    <div class="eyebrow">छठ · सोनपुर मेला सीजन · ग्रामीण विपणन · भोजपुरी</div>
+    <h1>गाँव के शान, आपन पहचान — <span class="hl">अब रफ़्तार से पहचानी जहान!</span></h1>
+    <p class="translit">Gaon ke shaan, aapan pehchaan — ab raftaar se pehchaani jahaan!</p>
+    <p class="en">The pride of the village, my own identity — now the world recognizes my speed!</p>
+
+    <div class="taal" aria-label="Dholak and chimta rhythm">
+      <button class="sun" id="sun" type="button" aria-label="Play or stop the dholak and chimta rhythm">▶</button>
+      <div class="beats" id="beats"></div>
+      <div class="speed"><span aria-hidden="true">🐢</span><input type="range" id="tempo" min="1" max="10" value="5" aria-label="Rhythm speed"><span aria-hidden="true">🏍️</span></div>
+      <p class="lyric" id="lyric" aria-live="polite">▶ ढोलक-चिमटा के ताल सुनीं (आवाज़ चालू करीं)</p>
+    </div>
+
+    <ol class="road" id="road" aria-label="Campaign journey">
+      <li data-step="1"><span class="badge">1</span><div><h3>ढोलक-चिमटा के बोल <small>Vernacular-First</small></h3><p>छठ आ सोनपुर मेला के मौसम, आवाज़ पहिले, भोजपुरी में.</p></div></li>
+      <li data-step="2"><span class="badge">2</span><div><h3>गाँव के क्रिएटर रील <small>Creator-Led</small></h3><p>बाबूजी/भइया के पीछे बइठा के असली टेस्ट-राइड, कमी समेत.</p></div></li>
+      <li data-step="3"><span class="badge">3</span><div><h3>QR → WhatsApp → ₹999 <small>Commerce-Rail-Native</small></h3><p>“गाड़ी बुक करीं” + UPI टोकन + EMI पात्रता.</p></div></li>
+      <li data-step="4"><span class="badge">4</span><div><h3>सच्चा हिसाब <small>Ethics-Anchored</small></h3><p>बाइक के असली खर्चा बनाम रोज के भाड़ा, कउनो माइलेज के बड़बोली ना.</p></div></li>
+    </ol>
+
+    <div class="tips">
+      <b>Try:</b> scan the QR in the chat, or type <code>गाड़ी बुक करीं</code>. <code>मदद</code> = human dealer, <code>रोकीं</code> = opt-out. Numbers (1, 2, 3) also work, which is the SMS fallback.<br>
+      <small>Simulation only: dealers, prices, creators, interest and the UPI approval are mock data.</small>
+    </div>
+  </section>
+
+  <section aria-label="WhatsApp bot simulation">
+    <div class="phone"><div class="screen">
+      <div class="bar">
+        <div class="avatar" aria-hidden="true">🏍️</div>
+        <div><b>रफ़्तार साथी</b><small>लोकल डीलर · Business चैट</small></div>
+        <button class="reset" id="reset" type="button" aria-label="Restart demo">↺ फेर से</button>
+      </div>
+      <div class="log" id="log" role="log" aria-live="polite"></div>
+      <form class="composer" id="form" autocomplete="off">
+        <input id="input" aria-label="Type your reply" placeholder="रउआ के जवाब लिखीं…" maxlength="60">
+        <button class="send" type="submit" aria-label="Send">➤</button>
+      </form>
+    </div></div>
+  </section>
+</main>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const fmt = n => "₹" + Math.round(n).toLocaleString("en-IN");
+const emi = (P, a, n) => { const r = a/1200; return P*r/(1-Math.pow(1+r,-n)); };
+const C = {petrol:105, service:0.5, fare:1.8, days:26};   // sample assumptions, shown to the user in the bot
+
+/* ============ AUDIO: synthesized dholak + chimta, Kaharwa taal (8 beats) ============ */
+const SYL = ["धा","गे","ना","ति","ना","का","धी","ना"];
+const SEQ = ["dha","ge","na","ti","na","ka","dhi","na"];
+const BASS = [1,1,0,0,0,0,1,0];
+const Taal = (() => {
+  let ctx, master, noiseBuf, timer, next = 0, step = 0, running = false, dur = .22, session = 0, remaining = null;
+  let onStep = () => {}, onEnd = () => {};
+  function init(){
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain(); master.gain.value = .8; master.connect(ctx.destination);
+    const len = ctx.sampleRate * .2; noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random()*2 - 1;
+  }
+  const osc = (type, f0, f1, t, vol, len) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t+len*.6);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t+len);
+    o.connect(g).connect(master); o.start(t); o.stop(t+len+.05);
+  };
+  function noise(t, vol, freq, len, band){
+    const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+    const f = ctx.createBiquadFilter(); f.type = band ? "bandpass" : "highpass"; f.frequency.value = freq;
+    const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t+len);
+    s.connect(f).connect(g).connect(master); s.start(t); s.stop(t+len+.02);
+  }
+  function chimta(t, accent){
+    noise(t, accent ? .22 : .12, 6500, .06);
+    [3100,4300,5200].forEach(f => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = "square"; o.frequency.value = f;
+      g.gain.setValueAtTime(accent ? .025 : .012, t); g.gain.exponentialRampToValueAtTime(.0005, t+.09); o.connect(g).connect(master); o.start(t); o.stop(t+.1); });
+  }
+  function strike(n, t){
+    if (n === "dha"){ osc("sine",150,68,t,.9,.4); osc("triangle",360,320,t,.35,.12); }
+    else if (n === "ge") osc("sine",130,58,t,.5,.4);
+    else if (n === "na") osc("triangle",430,390,t,.4,.12);
+    else if (n === "ti") osc("triangle",540,490,t,.25,.12);
+    else if (n === "ka") noise(t,.12,1800,.04,true);
+    else if (n === "dhi"){ osc("sine",140,63,t,.6,.4); osc("triangle",400,360,t,.3,.12); }
+  }
+  function sched(){
+    while (running && next < ctx.currentTime + .15){
+      if (remaining !== null){
+        if (remaining <= 0){ const my = session; clearInterval(timer);
+          setTimeout(() => { if (running && my === session) stop(); }, Math.max(0,(next-ctx.currentTime)*1000)+250); return; }
+        remaining--;
+      }
+      const s = step, t = next, my = session;
+      strike(SEQ[s], t); chimta(t, s % 2 === 1);
+      setTimeout(() => { if (my === session) onStep(s); }, Math.max(0,(t-ctx.currentTime)*1000));
+      step = (step+1) % 8; next += dur;
+    }
+  }
+  function start(o = {}){
+    try { init(); ctx.resume(); } catch(e){ return false; }
+    if (running) stop();
+    session++; running = true; step = 0; next = ctx.currentTime + .08;
+    remaining = o.steps || null; onStep = o.onStep || (() => {}); onEnd = o.onEnd || (() => {});
+    timer = setInterval(sched, 25); return true;
+  }
+  function stop(){ if (!running) return; running = false; clearInterval(timer); session++; const e = onEnd; onEnd = () => {}; e(); }
+  return { start, stop, setDur: v => { dur = v; } };
+})();
+
+/* ---------- left-side taal strip ---------- */
+const LINES = ["छठ के घाट पर सूरज उगल, ढोलक-चिमटा बाजे लागल!","गाँव के शान, आपन पहचान —","अब रफ़्तार से पहचानी जहान!","हिसाब देख के चलीं — ‘गाड़ी बुक करीं’!"];
+const beatsEl = $("#beats"), sun = $("#sun"), lyric = $("#lyric");
+SYL.forEach((s,i) => { const d = document.createElement("div"); d.className = "beat" + (BASS[i] ? " bass" : ""); d.textContent = s; beatsEl.appendChild(d); });
+const beatEls = [...beatsEl.children];
+let mainOn = false, bars = 0;
+function ringStep(s){
+  beatEls.forEach((d,i) => d.classList.toggle("on", i === s));
+  if (s === 0){ bars++; lyric.textContent = LINES[((bars-1) >> 1) % LINES.length]; }
+  if (BASS[s]){ sun.classList.add("kick"); setTimeout(() => sun.classList.remove("kick"), 110); }
+}
+function mainUI(on){
+  mainOn = on; sun.textContent = on ? "■" : "▶";
+  if (!on){ beatEls.forEach(d => d.classList.remove("on")); lyric.textContent = "▶ ढोलक-चिमटा के ताल सुनीं (आवाज़ चालू करीं)"; }
+}
+sun.addEventListener("click", () => {
+  if (mainOn){ Taal.stop(); return; }
+  bars = 0; setStep(1);
+  if (Taal.start({onStep: ringStep, onEnd: () => mainUI(false)})) mainUI(true);
+});
+$("#tempo").addEventListener("input", e => Taal.setDur(.32 - (+e.target.value)*.02));
+
+/* ---------- road tracker ---------- */
+const reached = new Set();
+function setStep(n){
+  reached.add(n);
+  document.querySelectorAll("#road li").forEach(li => {
+    const k = +li.dataset.step, badge = li.querySelector(".badge");
+    li.classList.toggle("active", k === n);
+    li.classList.toggle("reached", reached.has(k) && k !== n);
+    badge.textContent = k === n ? "🏍" : (reached.has(k) ? "✓" : k);
+  });
+}
+function resetRoad(){
+  reached.clear();
+  document.querySelectorAll("#road li").forEach(li => { li.classList.remove("active","reached"); li.querySelector(".badge").textContent = li.dataset.step; });
+}
+
+/* ============ mock creator reel (inline SVG, no images) ============ */
+let uid = 0;
+function reelSVG(scene){
+  const id = "sky" + (++uid), T = scene === "ghat" ? ["#FF8A3C","#FFD98A"] : ["#3B2A78","#E8628A"];
+  const bg = scene === "ghat"
+    ? `<circle cx="90" cy="118" r="34" fill="#FFF1B8"/><rect y="140" width="180" height="92" fill="#2F8FA3"/>
+       <g stroke="#fff" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"><path d="M20 160h30M110 170h40M50 190h36M126 204h30"/></g>
+       <g fill="#FFC247"><circle cx="30" cy="176" r="4"/><circle cx="70" cy="200" r="4"/><circle cx="150" cy="186" r="4"/></g>`
+    : `<g stroke="#FFC247" stroke-width="2" fill="none"><circle cx="90" cy="105" r="50"/><path d="M90 55v100M40 105h100M55 70l70 70M125 70l-70 70"/></g>
+       <path d="M0 40Q45 62 90 40T180 40" stroke="#FFC247" stroke-width="1.5" fill="none"/>
+       <path d="M0 232V176l30-24 30 24 30-24 30 24 30-24 30 24v56z" fill="#2A1C48"/>`;
+  return `<svg viewBox="0 0 180 320" role="img" aria-label="Illustration: an elder sits behind a young rider on a motorbike, head held high">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T[0]}"/><stop offset="1" stop-color="${T[1]}"/></linearGradient></defs>
+    <rect width="180" height="320" fill="url(#${id})"/>${bg}
+    <rect y="232" width="180" height="88" fill="#2A2233"/><path d="M0 276h180" stroke="#FFF3DC" stroke-width="3" stroke-dasharray="14 12" opacity=".7"/>
+    <g transform="translate(38 206) scale(1.15)"><g class="bike">
+      <g class="wheel"><circle cx="22" cy="42" r="16" fill="none" stroke="#FFF3DC" stroke-width="3"/><path d="M22 28v28M8 42h28" stroke="#FFF3DC" stroke-width="1.5"/></g>
+      <g class="wheel"><circle cx="82" cy="42" r="16" fill="none" stroke="#FFF3DC" stroke-width="3"/><path d="M82 28v28M68 42h28" stroke="#FFF3DC" stroke-width="1.5"/></g>
+      <path d="M22 42L44 26H70L82 42M44 26L56 42H22M68 24l4-10h8" fill="none" stroke="#FFC247" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="52" y="18" width="18" height="8" rx="4" fill="#FF7A1A"/><rect x="30" y="22" width="26" height="5" rx="2.5" fill="#111"/>
+      <path d="M40 18L46 38" stroke="#2c2c3a" stroke-width="4.5" stroke-linecap="round"/>
+      <rect x="33" y="-10" width="14" height="29" rx="6" fill="#E8452C"/><circle cx="40" cy="-19" r="7" fill="#E0A97A"/>
+      <path d="M32.5 -21Q40 -33 47.5 -21L47.5 -18.5L32.5 -18.5Z" fill="#FFF3DC"/><path d="M45 0L56 -3" stroke="#E0A97A" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M58 18L64 38" stroke="#333" stroke-width="4.5" stroke-linecap="round"/>
+      <rect x="52" y="-6" width="12" height="25" rx="6" fill="#8BCB7E"/><circle cx="58" cy="-14" r="6.5" fill="#E0A97A"/><path d="M62 2L74 14" stroke="#E0A97A" stroke-width="3.5" stroke-linecap="round"/>
+    </g></g></svg>`;
+}
+function qrSVG(){   // decorative fake QR (not scannable)
+  const N = 21; let s = 4*9301 + 49297; const rnd = () => { s = (s*9301 + 49297) % 233280; return s/233280; };
+  const fin = (x,y) => (x<8&&y<8) || (x>=N-8&&y<8) || (x<8&&y>=N-8); let g = "";
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!fin(x,y) && rnd() > .5) g += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+  const f = (ox,oy) => `<rect x="${ox}" y="${oy}" width="7" height="7"/><rect x="${ox+1}" y="${oy+1}" width="5" height="5" fill="#fff"/><rect x="${ox+2}" y="${oy+2}" width="3" height="3"/>`;
+  return `<svg viewBox="-2 -2 ${N+4} ${N+4}" shape-rendering="crispEdges" fill="#16120E"><rect x="-2" y="-2" width="${N+4}" height="${N+4}" fill="#fff"/>${g}${f(0,0)}${f(N-7,0)}${f(0,N-7)}</svg>`;
+}
+
+/* ============ BOT ENGINE (same flow works over SMS with numbered menus) ============ */
+const NUM = ["1️⃣","2️⃣"];
+const KMS = [{id:"k10",label:"10 किमी",v:10},{id:"k20",label:"20 किमी",v:20},{id:"k40",label:"40 किमी",v:40}];
+const RID = [{id:"r1",label:"🧍 अकेले",v:1},{id:"r2",label:"👨‍👦 दू जन (बाबूजी/भइया संगे)",v:2},{id:"r3",label:"👨‍👩‍👦 तीन जन (परिवार)",v:3}];
+const INC = [{id:"i1",label:"₹8,000 – 12,000",low:8000},{id:"i2",label:"₹12,000 – 20,000",low:12000},{id:"i3",label:"₹20,000 से ऊपर",low:20000}];
+// Fictional ONDC-style catalogue + fictional creators
+const B = {
+  b1:{short:"गाँव-शान 100", name:"गाँव-शान 100 — रोज के सवारी", price:72000, down:8000,  rate:13, kmpl:50, dealer:"गंडक मोटर्स, सोनपुर",
+      scene:"ghat", creator:"छोटू चौधरी (लोकल कॉमेडी क्रिएटर)",
+      quote:"बाबूजी के पीछे बइठा के चलवनी — फ्रेम पक्का बा, हैंडल हल्का. बाकिर सीट तनी सख्त बा, लमहर दूरी में कमर बोली."},
+  b2:{short:"रफ़्तार 125", name:"रफ़्तार 125 — दमदार चाल", price:91000, down:10000, rate:13, kmpl:42, dealer:"सारण ऑटो, छपरा",
+      scene:"mela", creator:"सुमन ‘सुर’ (लोकगीत गायिका)",
+      quote:"भइया के संगे मेला रोड पर चलनी — सस्पेंशन नरम, चाल दमदार. बाकिर पेट्रोल जादे पिएला, महीना के बजट में जोड़ लीं."}
+};
+const costs = (km, riders, kmpl) => { const run = C.petrol/kmpl + C.service; return {run, bike: km*run*C.days, pub: km*C.fare*riders*C.days}; };
+
+function begin(s){
+  Object.assign(s,{state:"ASK_NAME",name:"",km:20,riders:2,pick:null,income:null,el:null,options:[],last:null});
+  return [
+    {voice:true, step:1, text:"प्रणाम! छठी मइया के आसीस रउआ पर बनल रहे. हम बानी रफ़्तार साथी — गाँव के शान खातिर गाड़ी के सही हिसाब संगे."},
+    {step:1, text:"“गाँव के शान, आपन पहचान — अब रफ़्तार से पहचानी जहान!” 🏍️\n\nपहिले बताईं, रउआ के नाम का ह?"}
+  ];
+}
+function catalogMsgs(s, intro){
+  s.state = "CATALOG"; const keys = Object.keys(B);
+  const list = keys.map((k,i) => `${NUM[i]} ${B[k].name}\n     दाम ${fmt(B[k].price)} · पहिला भुगतान ${fmt(B[k].down)}\n     असली-सड़क अंदाज: ~${B[k].kmpl} किमी/लीटर`).join("\n\n");
+  return [{text:intro, step:3},
+          {text:list+"\n\n(माइलेज कंपनी के दावा ना, सावधान अंदाज बा.)\nकवन के रील आ हिसाब देखल चाहत बानी?", step:3, buttons:keys.map(k => ({id:k,label:B[k].short}))}];
+}
+function reelMsgs(s){
+  const b = B[s.pick]; s.state = "REEL";
+  return [{reel:b, step:2, text:`🎬 ${b.creator}\nके असली टेस्ट-राइड रील\n\n“${b.quote}”`,
+    buttons:[{id:"cost",label:"🧾 सच्चा हिसाब देखीं"},{id:"back",label:"↩️ दोसर गाड़ी देखीं"}]}];
+}
+function verdict(bike, pub){
+  return bike <= pub
+    ? "✅ खाली चलावे के खर्चा देखीं त बाइक, बस/टेम्पो से सस्ता पड़ी."
+    : "⚖️ खाली चलावे के खर्चा देखीं त बस/टेम्पो थोड़ा सस्ता पड़ेला. बाइक के असली फायदा: समय के बचत, बोझा आ परिवार संगे सहूलियत, आ जब चाहीं तब निकले के आजादी.";
+}
+function costMsgs(s){
+  const b = B[s.pick], c = costs(s.km, s.riders, b.kmpl); s.state = "COST";
+  return [{step:4, text:`🧾 ${b.short} — सच्चा हिसाब (महीना, ${C.days} दिन)\nरोज ${s.km} किमी × ${s.riders} जन\n\n🏍️ बाइक: ₹${c.run.toFixed(1)}/किमी = ${fmt(c.bike)}/महीना\n     (पेट्रोल ₹${C.petrol}/लीटर, ${b.kmpl} किमी/लीटर, सर्विस+टायर ₹${C.service}/किमी)\n🚌 बस/टेम्पो: ₹${C.fare}/किमी/जन = ${fmt(c.pub)}/महीना\n\n${verdict(c.bike, c.pub)}\n\n(भाव नमूना बा — आपन इलाका के भाव संगे मिला लीं.)`,
+    buttons:[{id:"elig",label:"✅ EMI पात्रता देखीं"},{id:"back",label:"↩️ दोसर गाड़ी देखीं"}]}];
+}
+function incomeMsgs(s){
+  s.state = "ASK_INCOME";
+  return [{step:3, text:"EMI के अंदाजा खातिर महीना के अनुमानित कमाई चुनीं.\n\n🔒 ई सिर्फ अंदाजा बा. रउआ के सहमति बिना कउनो कागज ना माँगल जाई.", buttons:INC}];
+}
+function eligibility(b, low){
+  const cap = .30*low, loan = b.price - b.down;
+  for (const n of [18,24,30,36]){ const e = emi(loan, b.rate, n); if (e <= cap) return {ok:true,n,e,cap,loan,total:e*n}; }
+  return {ok:false,cap,loan,e36:emi(loan,b.rate,36)};
+}
+function eligMsgs(s){
+  const b = B[s.pick], r = eligibility(b, s.income); s.state = "ELIG"; s.el = r;
+  if (r.ok) return [{step:3, text:`✅ अंदाजन प्री-अप्रूव्ड (डेमो)\n\nगाड़ी: ${b.short}\nलोन: ${fmt(r.loan)}\nकिस्त: ${fmt(r.e)} × ${r.n} महीना\nसालाना ब्याज (नमूना): ${b.rate}%\nकुल ब्याज: ${fmt(r.total-r.loan)}\n\n👉 ई किस्त रउआ के कमाई के 30% से कम बा — सुरक्षित सीमा में.\n\nअंतिम मंजूरी केवाईसी आ ऋणदाता के जाँच के बाद. कउनो छुपल चार्ज नइखे. (डेमो नीति)`,
+    buttons:[{id:"token",label:"💳 ₹999 टोकन से बुक करीं"},{id:"back",label:"↩️ दोसर गाड़ी देखीं"}]}];
+  return [{text:`⚠️ ई गाड़ी खातिर 36 महीना में भी किस्त करीब ${fmt(r.e36)} बा, जबकि रउआ के कमाई के हिसाब से सुरक्षित सीमा ~${fmt(r.cap)} बा.\n\nहम ना चाहब कि रउआ कर्ज के बोझ में फँसीं. सस्ता मॉडल देखीं, या डीलर से सीधे बात करीं — कउनो जल्दी नइखे.`,
+    buttons:[{id:"back",label:"↩️ सस्ता मॉडल देखीं"}]}];
+}
+function tokenMsgs(s){
+  s.state = "TOKEN";
+  return [{step:3, text:`बस एगो काम बाकी:\n💳 ₹999 टोकन — UPI से अभी\n\n• गाड़ी रउआ खातिर रोकल जाई\n• पूरा वापसी: 7 दिन में, बिना सवाल (डेमो नीति)\n• खरीदे पर ई रकम डाउन पेमेंट में जुड़ जाई\n• किस्त के AutoPay बाद में, अलग मंजूरी से\n\nUPI ऐप में रकम आ नाम जाँच के मंजूर करीं. 🔒`,
+    buttons:[{id:"pay",label:"📲 UPI में मंजूर कइलीं (डेमो)"},{id:"decline",label:"✋ अभी ना"}]}];
+}
+
+function route(s, text, id){
+  const t = text.trim().toLowerCase();
+  if (["start","hi","hello","hey","book","शुरू","प्रणाम","नमस्ते","गाड़ी बुक करीं","गाड़ी बुक करें","गाड़ी बुक"].includes(t)) return begin(s);
+  if (s.state === "STOPPED") return [];
+  const n = parseInt(t, 10);
+  if (!id) id = (n >= 1 && n <= s.options.length) ? s.options[n-1].id : (s.options.find(o => o.label.toLowerCase() === t) || {}).id;
+  const fallback = () => [{text:"माफ करीं, समझ ना पवनी. 🙏 बटन दबाईं या नंबर लिखीं."}].concat(s.last ? [s.last] : []);
+  const find = arr => arr.find(o => o.id === id);
+  const back = () => catalogMsgs(s, "कउनो बात ना, फेर से देखीं 👇");
+
+  switch(s.state){
+    case "ASK_NAME":
+      s.name = text.trim().slice(0,24); s.state = "ASK_KM";
+      return [{text:`${s.name} जी, राउर स्वागत बा! 🙏 पहिले हिसाब, फेर गाड़ी.\n\nरोज कुल कतना किमी चले के पड़ेला (आवे-जाए मिला के)?`, buttons:KMS}];
+    case "ASK_KM": { const o = find(KMS); if (!o) return fallback(); s.km = o.v; s.state = "ASK_RIDERS";
+      return [{text:"आ अक्सर केकरा संगे चलेनी?", buttons:RID}]; }
+    case "ASK_RIDERS": { const o = find(RID); if (!o) return fallback(); s.riders = o.v;
+      return catalogMsgs(s, "ठीक बा! लोकल डीलर के कैटलॉग (ONDC से) ई रहल 👇"); }
+    case "CATALOG": if (!B[id]) return fallback(); s.pick = id; return reelMsgs(s);
+    case "REEL": if (id === "cost") return costMsgs(s); if (id === "back") return back(); return fallback();
+    case "COST": if (id === "elig") return incomeMsgs(s); if (id === "back") return back(); return fallback();
+    case "ASK_INCOME": { const o = find(INC); if (!o) return fallback(); s.income = o.low; return eligMsgs(s); }
+    case "ELIG":
+      if (id === "token" && s.el && s.el.ok) return tokenMsgs(s);
+      if (id === "back") return back(); return fallback();
+    case "TOKEN":
+      if (id === "pay"){
+        const b = B[s.pick]; s.state = "DONE";
+        return [{step:3, text:`🎉 बधाई ${s.name} जी! ₹999 टोकन मिल गइल.\n\nबुकिंग नं: RS-${Math.floor(1000+Math.random()*9000)}\nगाड़ी: ${b.short}\nडीलर: ${b.dealer}\n\nअगिला कदम: डीलर फोन करी, टेस्ट-राइड आ कागज के जाँच के समय तय होई. बाबूजी/भइया के संगे आईं — पीछे बइठा के चला के देखीं, माथा ऊँचा! 🙂`},
+                {text:"गाँव के शान, आपन पहचान — अब रफ़्तार से पहचानी जहान! 🏍️\nकवनो सवाल होखे त ‘मदद’ लिखीं.", buttons:[{id:"again",label:"🔁 फेर से शुरू"}]}];
+      }
+      if (id === "decline"){ s.state = "ELIG";
+        return [{text:"कउनो बात ना. सोच-समझ के फैसला करीं — हम इहें बानी. 🙏", buttons:[{id:"token",label:"💳 ₹999 टोकन से बुक करीं"},{id:"back",label:"↩️ दोसर गाड़ी देखीं"}]}]; }
+      return fallback();
+    case "DONE": return id === "again" ? begin(s) : fallback();
+  }
+  return begin(s);
+}
+function handle(s, text, id){
+  const t = text.trim().toLowerCase();
+  if (["stop","रोकीं","रोकें","बंद"].includes(t)){ s.state = "STOPPED"; return [{text:"ठीक बा, अब रउआ के मैसेज ना आई. जब मन करे ‘गाड़ी बुक करीं’ लिखीं. 🙏"}]; }
+  if (["help","मदद","madad"].includes(t)) return [{text:"डीलर से सीधे बात खातिर: 📞 0000-000-000 (डेमो)\nसबेरे 9 से साँझ 7 तक. ‘गाड़ी बुक करीं’ लिखीं त फेर से शुरुआत होई."}];
+  const out = route(s, text, id);
+  const last = [...out].reverse().find(m => m.buttons);
+  s.options = last ? last.buttons : []; if (last) s.last = last;
+  return out;
+}
+
+/* ============ UI ============ */
+const log = $("#log"), form = $("#form"), input = $("#input");
+let S, busy = false;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const now = () => new Date().toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"});
+
+function bubble(who, m){
+  const wrap = document.createElement("div"); wrap.className = `msg ${who}`;
+  const b = document.createElement("div"); b.className = "bubble";
+  if (m.voice){
+    const v = document.createElement("div"); v.className = "voice";
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "vplay"; btn.textContent = "▶"; btn.setAttribute("aria-label","Play voice note");
+    const w = document.createElement("div"); w.className = "vwave";
+    for (let i = 0; i < 16; i++){ const x = document.createElement("i"); x.style.height = (8 + ((i*7)%5)*4) + "px"; w.appendChild(x); }
+    const d = document.createElement("span"); d.textContent = "0:04"; d.style.cssText = "font-size:.75rem;opacity:.7";
+    btn.onclick = () => { const bs = [...w.children]; setStep(1);
+      Taal.start({steps:16, onStep:s => bs.forEach((x,i) => x.classList.toggle("hi", (i+s)%4 === 0)), onEnd:() => bs.forEach(x => x.classList.remove("hi"))}); };
+    v.append(btn, w, d); b.appendChild(v);
+    const tx = document.createElement("div"); tx.className = "vtext"; tx.textContent = "🎙️ " + m.text; b.appendChild(tx);
+  } else if (m.reel){
+    const rc = document.createElement("div"); rc.className = "reelcard";
+    const fr = document.createElement("div"); fr.className = "frame"; fr.innerHTML = reelSVG(m.reel.scene) + '<span class="tag">विज्ञापन · Sponsored</span>';
+    const tx = document.createElement("div"); tx.className = "rtxt"; tx.textContent = m.text;
+    rc.append(fr, tx); b.appendChild(rc);
+  } else b.textContent = m.text;
+  const t = document.createElement("span"); t.className = "time"; t.textContent = now() + (who === "user" ? " ✓✓" : "");
+  b.appendChild(t); wrap.appendChild(b);
+  if (m.buttons){
+    const box = document.createElement("div"); box.className = "chips";
+    m.buttons.forEach(btn => {
+      const c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = btn.label;
+      c.onclick = () => { box.querySelectorAll("button").forEach(x => x.disabled = true); userSend(btn.label, btn.id); };
+      box.appendChild(c);
+    });
+    wrap.appendChild(box);
+  }
+  log.appendChild(wrap); log.scrollTop = log.scrollHeight;
+}
+async function botSay(msgs){
+  for (const m of msgs){
+    const ty = document.createElement("div"); ty.className = "msg bot typing"; ty.innerHTML = '<div class="bubble"><i></i><i></i><i></i></div>';
+    log.appendChild(ty); log.scrollTop = log.scrollHeight;
+    await sleep(450 + Math.min(m.text.length*4, 800));
+    ty.remove(); bubble("bot", m); if (m.step) setStep(m.step);
+  }
+}
+async function userSend(text, id){
+  if (busy) return; busy = true;
+  document.querySelectorAll(".hint").forEach(h => h.remove());
+  bubble("user", {text});
+  await botSay(handle(S, text, id));
+  busy = false; input.focus({preventScroll:true});
+}
+function init(){
+  S = {state:"NEW", options:[], last:null}; busy = false; log.innerHTML = ""; resetRoad();
+  const h = document.createElement("div"); h.className = "hint";
+  h.innerHTML = '<div class="qr" aria-hidden="true">' + qrSVG() + '</div>creator के पोस्ट पर QR स्कैन करीं, WhatsApp अइसे खुली.<br>';
+  const c = document.createElement("button"); c.className = "chip"; c.type = "button"; c.style.marginTop = "8px"; c.textContent = "📷 QR स्कैन करीं → ‘गाड़ी बुक करीं’";
+  c.onclick = () => userSend("गाड़ी बुक करीं"); h.appendChild(c); log.appendChild(h);
+}
+form.addEventListener("submit", e => { e.preventDefault(); const v = input.value.trim(); if (!v || busy) return; input.value = ""; userSend(v); });
+$("#reset").onclick = init;
+init();
+})();
+</script>
+</body>
+</html>
